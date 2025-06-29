@@ -1,9 +1,9 @@
 const express = require('express');
-const cors = require('cors');
+const cors = require('cors');  // Keep this only once
 const axios = require('axios');
 
 const app = express();
-app.use(cors({
+app.use(cors());
   origin: '*',  // or restrict to your domain: 'https://manongguardvpnv2.github.io'
   methods: ['GET', 'POST', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
