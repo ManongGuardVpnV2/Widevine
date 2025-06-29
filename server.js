@@ -14,20 +14,24 @@ app.use(express.raw({ type: '*/*' }));
 const WIDEVINE_LICENSE_URL = 'http://143.44.136.74:9443/widevine/?deviceId=02:00:00:00:00:00';
 
 // Proxy license POST requests
+const cors = require('cors');
+app.use(cors());
 app.post('/widevine-proxy', async (req, res) => {
   try {
-    const response = await axios.post(WIDEVINE_LICENSE_URL, req.body, {
+    const licenseUrl = 'http://143.44.136.74:9443/widevine/?deviceId=02:00:00:00:00:00';
+
+    const response = await axios.post(licenseUrl, req.body, {
       headers: {
         'Content-Type': 'application/octet-stream',
-        ...req.headers
       },
-      responseType: 'arraybuffer'
+      responseType: 'arraybuffer',
     });
 
     res.set('Content-Type', 'application/octet-stream');
+    res.set('Access-Control-Allow-Origin', '*');  // Add this line
     res.status(200).send(response.data);
-  } catch (error) {
-    console.error('License proxy error:', error.message);
+  } catch (err) {
+    console.error('License error:', err.message);
     res.status(500).send('Widevine license proxy error');
   }
 });
