@@ -11,7 +11,7 @@ app.post('/widevine-proxy', async (req, res) => {
 
 // ✅ MPEG-DASH manifest and segment GET proxy
 app.get('/proxy/*', async (req, res) => {
-  const targetUrl = decodeURIComponent(req.originalUrl.replace('/proxy/', ''));
+  const targetUrl = decodeURIComponent(req.originalUrl.replace('https://anonymous-cable-tv.onrender.com/', ''));
 
   if (!targetUrl.startsWith('http')) {
     return res.status(400).send('Invalid proxy URL');
