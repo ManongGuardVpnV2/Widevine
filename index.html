@@ -248,29 +248,36 @@ async function loadChannel(channel) {
 
     // Reset config
     player.configure({
-  streaming: {
-    // Remove 'abr' object; use 'abr.enabled' directly if supported, or skip if unsure
-    bufferingGoal: 15,
-    rebufferingGoal: 7,
-  },
-  manifest: {
-    dash: {
-      clockSyncUri: '' // or simply remove this line if no clockSyncUri needed
-    }
-  }
-});
+      drm: {
+        clearKeys: undefined,
+        servers: {}
+      },
+      streaming: {
+        bufferingGoal: 15,
+        rebufferingGoal: 7,
+        retryParameters: { maxAttempts: 5, baseDelay: 1000, backoffFactor: 2 },
+        abr: {
+          enabled: true,
+          defaultBandwidthEstimate: 3000000
+        }
+      },
+      manifest: {
+        dash: {}
+      }
+    });
 
-
-
-    // Widevine
+    // ✅ Widevine support
     if (channel.type === 'widevine') {
-  player.configure({
-    drm: {
-  servers: {
-    'com.widevine.alpha': 'https://anonymous-cable-tv.onrender.com/widevine-proxy'
-  }
-}
-    // ClearKey
+      player.configure({
+        drm: {
+          servers: {
+            'com.widevine.alpha': 'https://anonymous-cable-tv.onrender.com/widevine-proxy'
+          }
+        }
+      });
+    }
+
+    // ✅ ClearKey support
     if (channel.type === 'clearkey') {
       player.configure({
         drm: {
