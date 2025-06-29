@@ -27,7 +27,7 @@ app.post('/widevine-proxy', async (req, res) => {
 
 // ✅ MPEG-DASH manifest and segment GET proxy
 app.get('/proxy/*', async (req, res) => {
-  const targetUrl = decodeURIComponent(req.url.replace('/proxy/', ''));
+  const targetUrl = decodeURIComponent(req.originalUrl.replace('/proxy/', ''));
 
   if (!targetUrl.startsWith('http')) {
     return res.status(400).send('Invalid proxy URL');
@@ -40,7 +40,7 @@ app.get('/proxy/*', async (req, res) => {
         ...req.headers,
         host: undefined,
         origin: undefined,
-        referer: undefined
+        referer: undefined,
       }
     });
 
