@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>IPTV Player with Fixed Header</title>
+<style>
+  html, body {
+    margin: 0; padding: 0; height: 100%;
+    font-family: Arial, sans-serif;
+    background: #121212;
+    color: #eee;
+    overflow: hidden;
+  }
+  header {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    height: 50px;
+    background: linear-gradient(90deg, #ff0066, #ffcc00, #00ffcc, #0066ff);
+    background-size: 400% 400%;
+    animation: rainbow 15s ease infinite;
+    color: white;
+    font-weight: bold;
+    font-size: 1.2rem;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 20px;
+    z-index: 999;
+  }
+  @keyframes rainbow {
+    0%{background-position:0% 50%}
+    50%{background-position:100% 50%}
+    100%{background-position:0% 50%}
+  }
+  #date-time {
+    font-weight: normal;
+    font-size: 1rem;
+    color: #121212;
+  }
+  #main {
+  display: flex;
+  height: 100%;
+  animation: rainbow 2s infinite alternate;
+}
+
+ #channel-list {
+  width: 280px;
+  background: #222;
+  overflow-y: auto;
+  padding: 10px;
+  padding-top: 60px; /* make room for header */
+  box-sizing: border-box;
+  border-right: 2px solid #00ff00;
+  position: relative;
+  height: 100vh;
+}
+
+  #channel-list::-webkit-scrollbar {
+    width: 8px;
+  }
+  #channel-list::-webkit-scrollbar-thumb {
+    background: #555;
+    border-radius: 4px;
+  }
+  #category-select {
+    width: 100%;
+    margin-bottom: 10px;
+    padding: 6px;
+    font-size: 1rem;
+    border-radius: 4px;
+    border: none;
+    outline: none;
+    background: #d40202;
+    color: #80fe01;
+  }
+  .channel-item {
+    background: #333;
+    border-radius: 8px;
+    margin-bottom: 12px;
+    padding: 8px;
+    cursor: pointer;
+    user-select: none;
+    display: flex;
+    align-items: center;
+    transition: background 0.3s, color 0.3s;
+    position: relative;
+  }
+  .channel-item:hover {
+    background: #00aaff;
+    color: #000;
+  }
+  .channel-item.active {
+    background: #00aaff;
+    color: #000;
+  }
+  .green-dot {
+    width: 12px;
+    height: 12px;
+    background: #0f0;
+    border-radius: 50%;
+    margin-right: 10px;
+    animation: pulse 2s infinite;
+    flex-shrink: 0;
+  }
+  @keyframes pulse {
+    0% { box-shadow: 0 0 0 0 rgba(0,255,0, 0.7); }
+    70% { box-shadow: 0 0 10px 6px rgba(0,255,0, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(0,255,0, 0); }
+  }
+  .channel-logo {
+    width: 60px;
+    height: 40px;
+    object-fit: contain;
+    margin-right: 10px;
+    background: #111;
+    border-radius: 4px;
+  }
+ .channel-name {
+  font-weight: bold;
+  font-size: 1rem;
+  flex-grow: 1;
+  color: #050500;
+  text-shadow: 0 0 5px #0ff, 0 0 10px rgb(255, 213, 0), 0 0 20px #00faff;
+  animation: neonPulse 2s infinite alternate;
+}
+
+@keyframes neonPulse {
+  from {
+    text-shadow: 0 0 5px #0ff, 0 0 10px #0ff, 0 0 20px #00faff;
+  }
+  to {
+    text-shadow: 0 0 10px #0ff, 0 0 20px #0ff, 0 0 40px #00faff;
+  }
+}
+  #player-container {
+    flex: 1;
+    background: black;
+    position: relative;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+  video {
+    width: 100%;
+    height: 100%;
+    background: black;
+    outline: none;
+  }
+  #error-message {
+    position: absolute;
+    top: 10px; left: 10px;
+    background: rgba(255,0,0,0.8);
+    color: white;
+    padding: 8px 12px;
+    border-radius: 4px;
+    display: none;
+    max-width: 80%;
+    font-size: 0.9rem;
+    z-index: 10;
+  }
+  #category-select {
+  background: linear-gradient(270deg, #ff00cc, #3333ff, #00ffcc, #ffff00, #ff3300);
+  background-size: 1000% 100%;
+  animation: rainbowBg 10s linear infinite;
+  color: rgb(188, 3, 3);
+  font-weight: bold;
+  border: none;
+  border-radius: 8px;
+  padding: 10px;
+  outline: none;
+  box-shadow: 0 0 10px rgb(34, 255, 0), 0 0 20px rgb(176, 199, 6);
+}
+
+@keyframes rainbowBg {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+#category-select:hover {
+  box-shadow: 0 0 15px #010101, 0 0 25px rgb(46, 203, 6), 0 0 35px #0ff;
+}
+
+
+</style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/shaka-player/4.7.11/shaka-player.compiled.js"></script>
+</head>
+<body>
+
+<header>
+  <div>Anonymous Cable Tv</div>
+  <div id="date-time"></div>
+</header>
+
+<div id="main">
+  <div id="channel-list">
+    <select id="category-select" aria-label="Select channel category">
+      <option value="all">All Categories</option>
+    </select>
+
+  </div>
+
+  <div id="player-container">
+    <video id="video" controls autoplay playsinline></video>
+    <div id="error-message"></div>
+  </div>
+</div>
+
+<script>
+const CHANNELS_JSON_URL = "https://gist.githubusercontent.com/ManongGuardVpnV2/13008a0e298ca8cd0a8457a0dd550e1a/raw/128926a4a78a9853dd53c3ce927d5e67248e65cf/mychannel.json";
+
+const video = document.getElementById("video");
+const channelList = document.getElementById("channel-list");
+const errorMessage = document.getElementById("error-message");
+const categorySelect = document.getElementById("category-select");
+const dateTimeDisplay = document.getElementById("date-time");
+
+shaka.polyfill.installAll();
+let player = new shaka.Player(video);
+player.addEventListener('error', onErrorEvent);
+
+let channels = [];
+let filteredChannels = [];
+
+function onErrorEvent(event) {
+  onError(event.detail);
+}
+
+function onError(error) {
+  console.error('Error code', error.code, 'object', error);
+  errorMessage.textContent = `Error: ${error.message}`;
+  errorMessage.style.display = "block";
+}
+
+function clearError() {
+  errorMessage.style.display = "none";
+  errorMessage.textContent = "";
+}
+
+async function loadChannel(channel) {
+  const manifestUri = channel.manifestUri || channel.manifest || channel.url;
+  if (!manifestUri) {
+    onError(new Error("Missing manifestUri or manifest URL"));
+    return;
+  }
+
+  try {
+    clearError();
+    await player.unload();
+
+    // Reset config
+    player.configure({
+      drm: {
+        clearKeys: undefined,
+        servers: {}
+      },
+      streaming: {
+        bufferingGoal: 15,
+        rebufferingGoal: 7,
+        retryParameters: { maxAttempts: 5, baseDelay: 1000, backoffFactor: 2 },
+        abr: {
+          enabled: true,
+          defaultBandwidthEstimate: 3000000
+        }
+      },
+      manifest: {
+        dash: { clockSyncUri: null }
+      }
+    });
+
+    // Widevine
+    if (channel.type === 'widevine') {
+      player.configure({
+        drm: {
+          servers: {
+            'com.widevine.alpha': channel.licenseServer || 'http://143.44.136.74:9443/widevine/?deviceId=02:00:00:00:00:00'
+          }
+        }
+      });
+    }
+
+    // ClearKey
+    if (channel.type === 'clearkey') {
+      player.configure({
+        drm: {
+          clearKeys: channel.clearKey || {}
+        }
+      });
+    }
+
+    await player.load(manifestUri);
+    video.play();
+  } catch (e) {
+    onError(e);
+  }
+}
+
+function renderChannels(category = "all") {
+  [...channelList.querySelectorAll('.channel-item')].forEach(el => el.remove());
+
+  filteredChannels = category === "all" ? channels : channels.filter(c => c.category === category);
+
+  if (!filteredChannels.length) {
+    const noChannels = document.createElement("div");
+    noChannels.textContent = "No channels found in this category.";
+    noChannels.style.padding = "12px";
+    channelList.appendChild(noChannels);
+    return;
+  }
+
+  filteredChannels.forEach((channel, idx) => {
+    const div = document.createElement("div");
+    div.className = "channel-item";
+    div.title = channel.name;
+
+    const dot = document.createElement("div");
+    dot.className = "green-dot";
+    div.appendChild(dot);
+
+    if (channel.logo) {
+      const img = document.createElement("img");
+      img.src = channel.logo;
+      img.alt = channel.name + " logo";
+      img.className = "channel-logo";
+      div.appendChild(img);
+    }
+
+    const span = document.createElement("span");
+    span.textContent = channel.name;
+    span.className = "channel-name";
+    div.appendChild(span);
+
+    div.onclick = () => {
+      setActiveChannel(idx);
+      loadChannel(filteredChannels[idx]);
+    };
+
+    channelList.appendChild(div);
+  });
+
+  // Set first channel active by default
+  setActiveChannel(0);
+  loadChannel(filteredChannels[0]);
+}
+
+function setActiveChannel(index) {
+  const items = channelList.querySelectorAll(".channel-item");
+  items.forEach((el, i) => {
+    el.classList.toggle("active", i === index);
+  });
+}
+
+function populateCategories(channels) {
+  const categorySet = new Set();
+  categorySelect.innerHTML = '<option value="all">All Categories</option>';
+
+  channels.forEach(channel => {
+    if (channel.category && !categorySet.has(channel.category)) {
+      categorySet.add(channel.category);
+      const option = document.createElement("option");
+      option.value = channel.category;
+      option.textContent = channel.category;
+      categorySelect.appendChild(option);
+    }
+  });
+}
+
+categorySelect.addEventListener("change", () => {
+  renderChannels(categorySelect.value);
+});
+
+async function init() {
+  try {
+    const response = await fetch(CHANNELS_JSON_URL);
+    if (!response.ok) throw new Error("Failed to fetch channel JSON");
+    channels = await response.json();
+    populateCategories(channels);
+    renderChannels("all");
+  } catch (e) {
+    channelList.textContent = "Error loading channels: " + e.message;
+    console.error(e);
+  }
+}
+
+// Date/time display
+function updateDateTime() {
+  const now = new Date();
+  const options = {
+    weekday: 'short', year: 'numeric', month: 'short', day: 'numeric',
+    hour: '2-digit', minute: '2-digit', second: '2-digit'
+  };
+  dateTimeDisplay.textContent = now.toLocaleString(undefined, options);
+}
+setInterval(updateDateTime, 1000);
+updateDateTime();
+
+init();
+</script>
+</body>
+</html>
