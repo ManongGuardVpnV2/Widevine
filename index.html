@@ -249,15 +249,17 @@ async function loadChannel(channel) {
     // Reset config
     player.configure({
   streaming: {
-    abr: {
-      enabled: true,  // <-- invalid key 'abr'
-      defaultBandwidthEstimate: 3000000
-    }
+    // Remove 'abr' object; use 'abr.enabled' directly if supported, or skip if unsure
+    bufferingGoal: 15,
+    rebufferingGoal: 7,
   },
   manifest: {
-    dash: { clockSyncUri: null } // <-- wrong type, expects string or undefined
+    dash: {
+      clockSyncUri: '' // or simply remove this line if no clockSyncUri needed
+    }
   }
 });
+
 
 
     // Widevine
