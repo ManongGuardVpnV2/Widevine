@@ -1,46 +1,56 @@
-// server.js
 const express = require('express');
 const cors = require('cors');
-const { createProxyMiddleware } = require('http-proxy-middleware');
-
+const axios = require('axios');
 const app = express();
-const PORT = process.env.PORT || 3000;
 
-// Enable CORS for all routes
-app.use(cors());
+app.use(cors()); // Allow all origins
 
-// Proxy route: forward any /proxy/* request to the target HTTP URL
-app.use('/proxy', (req, res, next) => {
-  // Extract target URL by removing /proxy/ prefix
-  const targetUrl = req.url.slice(1); // remove leading "/"
-  
-  // Validate URL format - must start with http:// or https://
-  if (!/^https?:\/\//.test(targetUrl)) {
-    res.status(400).send('Invalid target URL');
+// Proxy MPD manifest
+app.get('/proxy/manifest', async (req, res) => {
+  const originalUrl = req.query.url;
+  if (!originalUrl) {
+    res.status(400).send("Missing 'url' query param");
     return;
   }
-  
-  // Use http-proxy-middleware to proxy the request
-  createProxyMiddleware({
-    target: targetUrl,
-    changeOrigin: true,
-    secure: false,
-    // Rewrite the path to empty because targetUrl contains the full URL
-    pathRewrite: () => '',
-    onProxyRes(proxyRes) {
-      // Add CORS headers to proxied response
-      proxyRes.headers['Access-Control-Allow-Origin'] = '*';
-      proxyRes.headers['Access-Control-Allow-Methods'] = 'GET, POST, OPTIONS';
-      proxyRes.headers['Access-Control-Allow-Headers'] = '*';
-    }
-  })(req, res, next);
+
+  try {
+    const response = await axios.get(originalUrl);
+    let manifest = response.data;
+
+    // Rewrite segment URLs inside manifest to route through this proxy
+    // Example: replace all 'http://143.44.136.110:6910' with 'https://yourproxy.com/proxy/http://143.44.136.110:6910'
+    manifest = manifest.replace(/http:\/\/143\.44\.136\.110:6910/g, 'https://yourproxy.com/proxy/http://143.44.136.110:6910');
+
+    res.setHeader('Content-Type', 'application/dash+xml');
+    res.send(manifest);
+  } catch (err) {
+    res.status(500).send('Error fetching manifest: ' + err.message);
+  }
 });
 
-// Basic root endpoint for sanity check
-app.get('/', (req, res) => {
-  res.send('IPTV Proxy Server Running');
+// Proxy all segment/media requests (pass through)
+app.get('/proxy/*', async (req, res) => {
+  const proxiedUrl = req.params[0];
+  try {
+    const response = await axios({
+      method: 'get',
+      url: proxiedUrl,
+      responseType: 'stream',
+    });
+    // Set CORS headers for media segments too
+    res.setHeader('Access-Control-Allow-Origin', '*');
+
+    response.data.pipe(res);
+  } catch (err) {
+    res.status(500).send('Error proxying media: ' + err.message);
+  }
 });
 
-app.listen(PORT, () => {
-  console.log(`Proxy server running on port ${PORT}`);
+// Widevine license proxy if needed
+app.post('/widevine-proxy', async (req, res) => {
+  // Forward DRM license requests here
+  // (You may need to forward headers/body as is, depends on license server)
 });
+
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => console.log(`Proxy server running on port ${PORT}`));
