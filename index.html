@@ -269,21 +269,12 @@ async function loadChannel(channel) {
     // Widevine
     if (channel.type === 'widevine') {
       player.configure({
-        drm: {
-          servers: {
-            if (channel.type === 'widevine') {
-  player.configure({
-    drm: {
-      servers: {
-        'com.widevine.alpha': 'https://your-proxy-name.onrender.com/widevine-proxy'
-      }
+  drm: {
+    servers: {
+      'com.widevine.alpha': 'https://your-proxy-name.onrender.com/widevine-proxy'
     }
-  });
-}
-
-          }
-        }
-      });
+  }
+});
     }
 
     // ClearKey
