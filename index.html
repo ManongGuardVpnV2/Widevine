@@ -236,56 +236,19 @@ function clearError() {
 }
 
 async function loadChannel(channel) {
-  const manifestUri = channel.manifestUri || channel.manifest || channel.url;
-  if (!manifestUri) {
-    onError(new Error("Missing manifestUri or manifest URL"));
-    return;
-  }
-
   try {
-    clearError();
-    await player.unload();
+    let manifestUri = channel.manifestUri || channel.manifest || channel.url;
 
-    // ✅ Correct configuration
+    // Rewrite manifestUri to use your proxy with HTTPS to avoid mixed content
+    manifestUri = 'https://anonymous-cable-tv.onrender.com//manifest?url=' + encodeURIComponent(manifestUri);
+
     player.configure({
-  abr: {
-    enabled: true,
-    defaultBandwidthEstimate: 3000000
-  },
-  streaming: {
-    bufferingGoal: 15,
-    rebufferingGoal: 7,
-    retryParameters: { maxAttempts: 5, baseDelay: 1000, backoffFactor: 2 }
-  },
-  manifest: {
-    dash: {}
-  },
-  drm: {
-    clearKeys: undefined,
-    servers: {} // Updated dynamically per channel type
-  }
-});
-
-
-    // ✅ Widevine license proxy
-    if (channel.type === 'widevine') {
-      player.configure({
-        drm: {
-          servers: {
-            'com.widevine.alpha': 'https://anonymous-cable-tv.onrender.com/widevine-proxy'
-          }
+      drm: {
+        servers: {
+          'com.widevine.alpha': 'https://anonymous-cable-tv.onrender.com//widevine-proxy'
         }
-      });
-    }
-
-    // ✅ ClearKey
-    if (channel.type === 'clearkey') {
-      player.configure({
-        drm: {
-          clearKeys: channel.clearKey || {}
-        }
-      });
-    }
+      }
+    });
 
     await player.load(manifestUri);
     video.play();
@@ -293,6 +256,7 @@ async function loadChannel(channel) {
     onError(e);
   }
 }
+
 
 
 function renderChannels(category = "all") {
