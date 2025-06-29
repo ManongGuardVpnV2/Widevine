@@ -214,8 +214,8 @@ const categorySelect = document.getElementById("category-select");
 const dateTimeDisplay = document.getElementById("date-time");
 
 shaka.polyfill.installAll();
-let player = new shaka.Player(video);
-player.addEventListener('error', onErrorEvent);
+let player = new shaka.Player();
+player.attach(video);
 
 let channels = [];
 let filteredChannels = [];
@@ -248,24 +248,24 @@ async function loadChannel(channel) {
 
     // ✅ Correct configuration
     player.configure({
-      drm: {
-        clearKeys: undefined,
-        servers: {}
-      },
-      streaming: {
-        bufferingGoal: 15,
-        rebufferingGoal: 7,
-        retryParameters: {
-          maxAttempts: 5,
-          baseDelay: 1000,
-          backoffFactor: 2
-        }
-      },
-      abr: {
-        enabled: true,
-        defaultBandwidthEstimate: 3000000
-      }
-    });
+  abr: {
+    enabled: true,
+    defaultBandwidthEstimate: 3000000
+  },
+  streaming: {
+    bufferingGoal: 15,
+    rebufferingGoal: 7,
+    retryParameters: { maxAttempts: 5, baseDelay: 1000, backoffFactor: 2 }
+  },
+  manifest: {
+    dash: {}
+  },
+  drm: {
+    clearKeys: undefined,
+    servers: {} // Updated dynamically per channel type
+  }
+});
+
 
     // ✅ Widevine license proxy
     if (channel.type === 'widevine') {
