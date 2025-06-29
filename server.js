@@ -8,22 +8,6 @@ app.use(express.raw({ type: '*/*' }));
 
 // ✅ Widevine license POST proxy
 app.post('/widevine-proxy', async (req, res) => {
-  try {
-    const licenseUrl = 'http://143.44.136.74:9443/widevine/?deviceId=02:00:00:00:00:00';
-    const response = await axios.post(licenseUrl, req.body, {
-      headers: {
-        'Content-Type': 'application/octet-stream',
-        ...req.headers
-      },
-      responseType: 'arraybuffer'
-    });
-    res.set('Content-Type', 'application/octet-stream');
-    res.status(200).send(response.data);
-  } catch (err) {
-    console.error('License error:', err.message);
-    res.status(500).send('Widevine license proxy error');
-  }
-});
 
 // ✅ MPEG-DASH manifest and segment GET proxy
 app.get('/proxy/*', async (req, res) => {
