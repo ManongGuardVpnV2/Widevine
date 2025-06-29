@@ -205,7 +205,7 @@
 </div>
 
 <script>
-const CHANNELS_JSON_URL = "https://gist.githubusercontent.com/ManongGuardVpnV2/13008a0e298ca8cd0a8457a0dd550e1a/raw/0f01c7374c76ea0c8bd5be9e6ab822a45a021e4b/mychannel.json";
+const CHANNELS_JSON_URL = "https://gist.githubusercontent.com/ManongGuardVpnV2/13008a0e298ca8cd0a8457a0dd550e1a/raw/128926a4a78a9853dd53c3ce927d5e67248e65cf/mychannel.json";
 
 const video = document.getElementById("video");
 const channelList = document.getElementById("channel-list");
@@ -262,22 +262,22 @@ async function loadChannel(channel) {
         }
       },
       manifest: {
-        dash: {}
+        dash: { clockSyncUri: null }
       }
     });
 
-    // ✅ Widevine support
+    // Widevine
     if (channel.type === 'widevine') {
-      player.configure({
-        drm: {
-          servers: {
-            'com.widevine.alpha': 'https://anonymous-cable-tv.onrender.com/widevine-proxy'
-          }
-        }
-      });
+  player.configure({
+    drm: {
+      servers: {
+        'com.widevine.alpha': 'https://anonymous-cable-tv.onrender.com/widevine-proxy'
+      }
     }
+  });
+}
 
-    // ✅ ClearKey support
+    // ClearKey
     if (channel.type === 'clearkey') {
       player.configure({
         drm: {
