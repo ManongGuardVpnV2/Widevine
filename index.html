@@ -246,41 +246,39 @@ async function loadChannel(channel) {
     clearError();
     await player.unload();
 
-    // Reset config
+    // ✅ Correct configuration
     player.configure({
-  drm: {
-    clearKeys: undefined,
-    servers: {}
-  },
-  streaming: {
-    bufferingGoal: 15,
-    rebufferingGoal: 7,
-    retryParameters: {
-      maxAttempts: 5,
-      baseDelay: 1000,
-      backoffFactor: 2
-    }
-  },
-  abr: {
-    enabled: true,
-    defaultBandwidthEstimate: 3000000
-  }
-});
-
-    // Widevine
-    if (channel.type === 'widevine') {
-  player.configure({
-    drm: {
-      servers: {
-        'com.widevine.alpha': 'https://anonymous-cable-tv.onrender.com/widevine-proxy'
+      drm: {
+        clearKeys: undefined,
+        servers: {}
+      },
+      streaming: {
+        bufferingGoal: 15,
+        rebufferingGoal: 7,
+        retryParameters: {
+          maxAttempts: 5,
+          baseDelay: 1000,
+          backoffFactor: 2
+        }
+      },
+      abr: {
+        enabled: true,
+        defaultBandwidthEstimate: 3000000
       }
-    }
-  });
+    });
 
-  
+    // ✅ Widevine license proxy
+    if (channel.type === 'widevine') {
+      player.configure({
+        drm: {
+          servers: {
+            'com.widevine.alpha': 'https://anonymous-cable-tv.onrender.com/widevine-proxy'
+          }
+        }
+      });
     }
 
-    // ClearKey
+    // ✅ ClearKey
     if (channel.type === 'clearkey') {
       player.configure({
         drm: {
@@ -295,6 +293,7 @@ async function loadChannel(channel) {
     onError(e);
   }
 }
+
 
 function renderChannels(category = "all") {
   [...channelList.querySelectorAll('.channel-item')].forEach(el => el.remove());
