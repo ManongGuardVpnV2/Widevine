@@ -271,7 +271,16 @@ async function loadChannel(channel) {
       player.configure({
         drm: {
           servers: {
-            'com.widevine.alpha': channel.licenseServer || 'http://143.44.136.74:9443/widevine/?deviceId=02:00:00:00:00:00'
+            if (channel.type === 'widevine') {
+  player.configure({
+    drm: {
+      servers: {
+        'com.widevine.alpha': 'https://your-proxy-name.onrender.com/widevine-proxy'
+      }
+    }
+  });
+}
+
           }
         }
       });
