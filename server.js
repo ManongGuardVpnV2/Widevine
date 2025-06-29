@@ -1,75 +1,55 @@
 const express = require('express');
-const cors = require('cors');  // Keep this only once
-const axios = require('axios');
-
-const app = express();
-app.use(cors());
-  origin: '*',  // or restrict to your domain: 'https://manongguardvpnv2.github.io'
-  methods: ['GET', 'POST', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
-}));
-app.use(express.raw({ type: '*/*' }));
-
-// Target Widevine license server
-const WIDEVINE_LICENSE_URL = 'http://143.44.136.74:9443/widevine/?deviceId=02:00:00:00:00:00';
-
-// Proxy license POST requests
 const cors = require('cors');
+const axios = require('axios');
+const app = express();
+
+const PORT = process.env.PORT || 3000;
+
+// ✅ Use CORS middleware correctly
 app.use(cors());
-app.post('/widevine-proxy', async (req, res) => {
-  try {
-    const licenseUrl = 'http://143.44.136.74:9443/widevine/?deviceId=02:00:00:00:00:00';
 
-    const response = await axios.post(licenseUrl, req.body, {
-      headers: {
-        'Content-Type': 'application/octet-stream',
-      },
-      responseType: 'arraybuffer',
-    });
+// ✅ Parse raw license requests
+app.use(express.raw({ type: 'application/octet-stream', limit: '10mb' }));
 
-    res.set('Content-Type', 'application/octet-stream');
-    res.set('Access-Control-Allow-Origin', '*');  // Add this line
-    res.status(200).send(response.data);
-  } catch (err) {
-    console.error('License error:', err.message);
-    res.status(500).send('Widevine license proxy error');
-  }
-});
-
-// Proxy GET requests for manifests and segments
+// ✅ Proxy manifest/segments
 app.get('/proxy/*', async (req, res) => {
-  const targetUrl = decodeURIComponent(req.originalUrl.replace('/proxy/', ''));
-
-  if (!targetUrl.startsWith('http')) {
-    return res.status(400).send('Invalid proxy URL');
-  }
-
   try {
+    const targetUrl = decodeURIComponent(req.originalUrl.replace('/proxy/', ''));
     const response = await axios.get(targetUrl, {
       responseType: 'stream',
-      headers: {
-        ...req.headers,
-        host: undefined,
-        origin: undefined,
-        referer: undefined,
-      },
-      timeout: 10000, // optional timeout
+      timeout: 10000
     });
 
     res.set('Content-Type', response.headers['content-type'] || 'application/octet-stream');
-    res.set('Access-Control-Allow-Origin', '*');  // Add CORS header here
+    res.set('Access-Control-Allow-Origin', '*'); // Allow cross-origin
     response.data.pipe(res);
-  } catch (err) {
-    console.error('Proxy GET error:', err.message);
+  } catch (error) {
+    console.error('Proxy GET failed:', error.message);
     res.status(502).send('Bad Gateway');
   }
 });
 
+// ✅ Widevine License Proxy
+app.post('/widevine-proxy', async (req, res) => {
+  try {
+    const licenseServerUrl = 'http://143.44.136.74:9443/widevine/?deviceId=02:00:00:00:00:00';
+    const response = await axios.post(licenseServerUrl, req.body, {
+      headers: {
+        'Content-Type': 'application/octet-stream'
+      },
+      responseType: 'arraybuffer'
+    });
 
-// Optional root route
-app.get('/', (req, res) => {
-  res.send('✅ Widevine Proxy Server running');
+    res.set('Content-Type', 'application/octet-stream');
+    res.set('Access-Control-Allow-Origin', '*');
+    res.status(200).send(response.data);
+  } catch (error) {
+    console.error('License error:', error.message);
+    res.status(500).send('Widevine license proxy error');
+  }
 });
 
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`Widevine proxy listening on port ${PORT}`));
+// ✅ Start the server
+app.listen(PORT, () => {
+  console.log(`✅ Server running at http://localhost:${PORT}`);
+});
