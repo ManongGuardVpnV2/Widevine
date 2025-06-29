@@ -4,44 +4,43 @@ const cors = require('cors');
 const { createProxyMiddleware } = require('http-proxy-middleware');
 
 const app = express();
+const PORT = process.env.PORT || 3000;
 
-// Enable CORS globally
+// Enable CORS for all routes
 app.use(cors());
 
-// Set custom CORS headers for all responses
-app.use((req, res, next) => {
-  res.setHeader("Access-Control-Allow-Origin", "*");
-  next();
+// Proxy route: forward any /proxy/* request to the target HTTP URL
+app.use('/proxy', (req, res, next) => {
+  // Extract target URL by removing /proxy/ prefix
+  const targetUrl = req.url.slice(1); // remove leading "/"
+  
+  // Validate URL format - must start with http:// or https://
+  if (!/^https?:\/\//.test(targetUrl)) {
+    res.status(400).send('Invalid target URL');
+    return;
+  }
+  
+  // Use http-proxy-middleware to proxy the request
+  createProxyMiddleware({
+    target: targetUrl,
+    changeOrigin: true,
+    secure: false,
+    // Rewrite the path to empty because targetUrl contains the full URL
+    pathRewrite: () => '',
+    onProxyRes(proxyRes) {
+      // Add CORS headers to proxied response
+      proxyRes.headers['Access-Control-Allow-Origin'] = '*';
+      proxyRes.headers['Access-Control-Allow-Methods'] = 'GET, POST, OPTIONS';
+      proxyRes.headers['Access-Control-Allow-Headers'] = '*';
+    }
+  })(req, res, next);
 });
 
-// Proxy route
-app.use('/proxy', createProxyMiddleware({
-  target: '', // will be determined dynamically
-  changeOrigin: true,
-  pathRewrite: (path, req) => {
-    // Remove `/proxy/` and leave the rest as the full target URL
-    return path.replace(/^\/proxy\//, '');
-  },
-  router: (req) => {
-    // Extract full URL from path
-    const fullUrl = decodeURIComponent(req.url.replace(/^\/proxy\//, ''));
-    return fullUrl.split('/')[2]; // returns host only (e.g., 143.44.136.110)
-  },
-  onProxyReq: (proxyReq, req, res) => {
-    res.setHeader("Access-Control-Allow-Origin", "*");
-  },
-  onProxyRes: (proxyRes, req, res) => {
-    res.setHeader("Access-Control-Allow-Origin", "*");
-  },
-  logLevel: 'debug'
-}));
-
-// Root response
+// Basic root endpoint for sanity check
 app.get('/', (req, res) => {
-  res.send('✅ Widevine Proxy Server is running.');
+  res.send('IPTV Proxy Server Running');
 });
 
-const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`Proxy server running on port ${PORT}`);
 });
