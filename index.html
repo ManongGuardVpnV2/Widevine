@@ -268,14 +268,14 @@ async function loadChannel(channel) {
 
     // Widevine
     if (channel.type === 'widevine') {
-  player.configure({
-    drm: {
-      servers: {
-        'com.widevine.alpha': 'https://anonymous-cable-tv.onrender.com/widevine-proxy'
-      }
-    }
-  });
+      player.configure({
+  drm: {
+  servers: {
+    'com.widevine.alpha': 'https://anonymous-cable-tv.onrender.com/widevine-proxy'
+  }
 }
+});
+    }
 
     // ClearKey
     if (channel.type === 'clearkey') {
