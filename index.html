@@ -214,8 +214,8 @@ const categorySelect = document.getElementById("category-select");
 const dateTimeDisplay = document.getElementById("date-time");
 
 shaka.polyfill.installAll();
-let player = new shaka.Player();
-player.attach(video);
+let player = new shaka.Player(video);
+player.addEventListener('error', onErrorEvent);
 
 let channels = [];
 let filteredChannels = [];
@@ -236,7 +236,7 @@ function clearError() {
 }
 
 async function loadChannel(channel) {
-  const manifestUri = 'https://yourproxy.com/proxy?url=' + encodeURIComponent(originalHttpManifestUrl);
+  const manifestUri = channel.manifestUri || channel.manifest || channel.url;
   if (!manifestUri) {
     onError(new Error("Missing manifestUri or manifest URL"));
     return;
@@ -246,39 +246,38 @@ async function loadChannel(channel) {
     clearError();
     await player.unload();
 
-    // ✅ Correct configuration
+    // Reset config
     player.configure({
-  abr: {
-    enabled: true,
-    defaultBandwidthEstimate: 3000000
-  },
-  streaming: {
-    bufferingGoal: 15,
-    rebufferingGoal: 7,
-    retryParameters: { maxAttempts: 5, baseDelay: 1000, backoffFactor: 2 }
-  },
-  manifest: {
-    dash: {}
-  },
-  drm: {
-    clearKeys: undefined,
-    servers: {} // Updated dynamically per channel type
-  }
-});
+      drm: {
+        clearKeys: undefined,
+        servers: {}
+      },
+      streaming: {
+        bufferingGoal: 15,
+        rebufferingGoal: 7,
+        retryParameters: { maxAttempts: 5, baseDelay: 1000, backoffFactor: 2 },
+        abr: {
+          enabled: true,
+          defaultBandwidthEstimate: 3000000
+        }
+      },
+      manifest: {
+        dash: { clockSyncUri: null }
+      }
+    });
 
-
-    // ✅ Widevine license proxy
+    // Widevine
     if (channel.type === 'widevine') {
       player.configure({
         drm: {
           servers: {
-            'com.widevine.alpha': 'https://anonymous-cable-tv.onrender.com/widevine-proxy'
+            'com.widevine.alpha': channel.licenseServer || 'http://143.44.136.74:9443/widevine/?deviceId=02:00:00:00:00:00'
           }
         }
       });
     }
 
-    // ✅ ClearKey
+    // ClearKey
     if (channel.type === 'clearkey') {
       player.configure({
         drm: {
@@ -287,13 +286,12 @@ async function loadChannel(channel) {
       });
     }
 
-    await player.load(manifestUri);
+    await player.load(manifestUri); // ✅
     video.play();
   } catch (e) {
     onError(e);
   }
 }
-
 
 function renderChannels(category = "all") {
   [...channelList.querySelectorAll('.channel-item')].forEach(el => el.remove());
