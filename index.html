@@ -205,7 +205,7 @@
 </div>
 
 <script>
-const CHANNELS_JSON_URL = "https://gist.githubusercontent.com/ManongGuardVpnV2/13008a0e298ca8cd0a8457a0dd550e1a/raw/f1ef3cdbc46fb0b6f202b267feef675ddf99581f/mychannel.json";
+const CHANNELS_JSON_URL = "https://gist.githubusercontent.com/ManongGuardVpnV2/13008a0e298ca8cd0a8457a0dd550e1a/raw/128926a4a78a9853dd53c3ce927d5e67248e65cf/mychannel.json";
 
 const video = document.getElementById("video");
 const channelList = document.getElementById("channel-list");
@@ -246,7 +246,6 @@ async function loadChannel(channel) {
     clearError();
     await player.unload();
 
-    // Reset config
     player.configure({
       drm: {
         clearKeys: undefined,
@@ -256,17 +255,11 @@ async function loadChannel(channel) {
         bufferingGoal: 15,
         rebufferingGoal: 7,
         retryParameters: { maxAttempts: 5, baseDelay: 1000, backoffFactor: 2 },
-        abr: {
-          enabled: true,
-          defaultBandwidthEstimate: 3000000
-        }
+        abr: { enabled: true, defaultBandwidthEstimate: 3000000 }
       },
-      manifest: {
-        dash: { clockSyncUri: null }
-      }
+      manifest: { dash: { clockSyncUri: null } }
     });
 
-    // Widevine
     if (channel.type === 'widevine') {
       player.configure({
         drm: {
@@ -277,7 +270,6 @@ async function loadChannel(channel) {
       });
     }
 
-    // ClearKey
     if (channel.type === 'clearkey') {
       player.configure({
         drm: {
@@ -286,12 +278,13 @@ async function loadChannel(channel) {
       });
     }
 
-    await player.load(manifestUri); // ✅
+    await player.load(manifestUri); // loads via proxy automatically
     video.play();
   } catch (e) {
     onError(e);
   }
 }
+
 
 function renderChannels(category = "all") {
   [...channelList.querySelectorAll('.channel-item')].forEach(el => el.remove());
