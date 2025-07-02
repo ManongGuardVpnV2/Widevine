@@ -205,7 +205,7 @@
 </div>
 
 <script>
-const CHANNELS_JSON_URL = "https://gist.githubusercontent.com/ManongGuardVpnV2/13008a0e298ca8cd0a8457a0dd550e1a/raw/128926a4a78a9853dd53c3ce927d5e67248e65cf/mychannel.json";
+const CHANNELS_JSON_URL = "https://gist.githubusercontent.com/ManongGuardVpnV2/13008a0e298ca8cd0a8457a0dd550e1a/raw/d69d3bac0b1d195e4b2f9fb24ba18c1184c67bb2/mychannel.json";
 
 const video = document.getElementById("video");
 const channelList = document.getElementById("channel-list");
@@ -236,9 +236,8 @@ function clearError() {
 }
 
 async function loadChannel(channel) {
-  const manifestUri = channel.manifestUri || channel.manifest || channel.url;
-  if (!manifestUri) {
-    onError(new Error("Missing manifestUri or manifest URL"));
+  if (!channel.manifestUri) {
+    onError(new Error("Missing manifestUri in channel"));
     return;
   }
 
@@ -246,44 +245,38 @@ async function loadChannel(channel) {
     clearError();
     await player.unload();
 
-    player.configure({
-      drm: {
-        clearKeys: undefined,
-        servers: {}
-      },
+    const config = {
       streaming: {
         bufferingGoal: 15,
         rebufferingGoal: 7,
         retryParameters: { maxAttempts: 5, baseDelay: 1000, backoffFactor: 2 },
         abr: { enabled: true, defaultBandwidthEstimate: 3000000 }
       },
-      manifest: { dash: { clockSyncUri: null } }
-    });
+      manifest: { dash: { clockSyncUri: null } },
+      drm: {}
+    };
 
-    if (channel.type === 'widevine') {
-      player.configure({
-        drm: {
-          servers: {
-            'com.widevine.alpha': channel.licenseServer || 'http://143.44.136.74:9443/widevine/?deviceId=02:00:00:00:00:00'
-          }
-        }
-      });
+    // Widevine
+    if (channel.type === "widevine" && channel.licenseServer) {
+      config.drm.servers = {
+        "com.widevine.alpha": channel.licenseServer
+      };
     }
 
-    if (channel.type === 'clearkey') {
-      player.configure({
-        drm: {
-          clearKeys: channel.clearKey || {}
-        }
-      });
+    // ClearKey
+    if (channel.type === "clearkey" && channel.clearKey) {
+      config.drm.clearKeys = channel.clearKey;
     }
 
-    await player.load(manifestUri); // loads via proxy automatically
+    player.configure(config);
+
+    await player.load(channel.manifestUri);
     video.play();
   } catch (e) {
     onError(e);
   }
 }
+
 
 
 function renderChannels(category = "all") {
